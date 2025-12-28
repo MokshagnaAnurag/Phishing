@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+*.pkl
+*.joblib
+*.h5
+*.hdf5
+env/
+venv/
+.venv
+
+
