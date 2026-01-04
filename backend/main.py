@@ -9,8 +9,17 @@ from typing import Optional
 import sys
 import os
 
-# Add ml-model to path
-sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ml-model'))
+# Add ml-model to path (try multiple locations for Render compatibility)
+ml_model_paths = [
+    os.path.join(os.path.dirname(__file__), '..', 'ml-model'),
+    os.path.join(os.path.dirname(__file__), 'ml-model'),
+    os.path.join(os.getcwd(), 'ml-model'),
+    'ml-model'
+]
+for path in ml_model_paths:
+    abs_path = os.path.abspath(path)
+    if os.path.exists(abs_path) and abs_path not in sys.path:
+        sys.path.append(abs_path)
 
 from ml.fraud_detector import FraudDetector
 
@@ -159,6 +168,7 @@ async def scan_url(request: URLRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    port = int(os.getenv("PORT", 8000))
+    uvicorn.run(app, host="0.0.0.0", port=port)
 
 
