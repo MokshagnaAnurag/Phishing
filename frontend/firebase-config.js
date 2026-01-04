@@ -6,13 +6,15 @@
 
 // Firebase configuration object
 const firebaseConfig = {
-  apiKey: "YOUR_API_KEY",
-  authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
-  projectId: "YOUR_PROJECT_ID",
-  storageBucket: "YOUR_PROJECT_ID.appspot.com",
-  messagingSenderId: "YOUR_MESSAGING_SENDER_ID",
-  appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyBXLMCa1F-qr-MYxP0raHXXWfAAa9fCOoc",
+    authDomain: "fraud-phishing-detection-cadbf.firebaseapp.com",
+    projectId: "fraud-phishing-detection-cadbf",
+    storageBucket: "fraud-phishing-detection-cadbf.firebasestorage.app",
+    messagingSenderId: "810197081216",
+    appId: "1:810197081216:web:5c9756ea3fa5707d3a9a65",
+    measurementId: "G-N7MH29FXZ4"
 };
+
 
 // Render backend URL - can be overridden by environment variable
 const RENDER_API_URL = window.RENDER_API_URL || "https://fraud-phishing-detection-mobile-ixnh.onrender.com";

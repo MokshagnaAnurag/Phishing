@@ -1,6 +1,8 @@
 {
   "projects": {
-    "default": "your-firebase-project-id"
-  }
+    "default": "fraud-phishing-detection-cadbf",
+    "firebase deploy --only firestore:rules": "fraud-phishing-detection-cadbf"
+  },
+  "targets": {},
+  "etags": {}
 }
-
