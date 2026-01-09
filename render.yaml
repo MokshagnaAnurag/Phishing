@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: neura-api
-    env: python
-    plan: free
-    startCommand: python main.py
-    envVars:
-      - key: PYTHONPATH
-        value: "."
