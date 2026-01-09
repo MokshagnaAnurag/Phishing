@@ -8,17 +8,8 @@ import joblib
 import re
 from typing import Dict, Optional
 
-# Add parent directory to path for imports (flexible paths for Render)
-ml_model_paths = [
-    os.path.join(os.path.dirname(__file__), '..', '..', 'ml-model'),
-    os.path.join(os.path.dirname(__file__), '..', 'ml-model'),
-    os.path.join(os.getcwd(), 'ml-model'),
-    'ml-model'
-]
-for path in ml_model_paths:
-    abs_path = os.path.abspath(path)
-    if os.path.exists(abs_path) and abs_path not in sys.path:
-        sys.path.append(abs_path)
+# Add parent directory to path for imports
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', 'ml-model'))
 
 from preprocess import clean_text, extract_features, preprocess_url
 
@@ -34,46 +25,45 @@ class FraudDetector:
         self._load_model()
     
     def _load_model(self):
-        """Load trained ML model and vectorizer with robust path handling and logging for Render/local."""
+        """Load trained ML model and vectorizer"""
         try:
-            base_dir = os.path.dirname(__file__)
-            cwd = os.getcwd()
-            possible_paths = [
-                os.path.join(base_dir, '..', '..', 'ml-model'),  # From backend/ml/ -> root/ml-model
-                os.path.join(base_dir, '..', 'ml-model'),        # From backend/ -> ml-model
-                os.path.join(cwd, 'ml-model'),                   # Current working directory
-                os.path.join(base_dir, 'ml-model'),              # backend/ml/ml-model
-                os.path.join(base_dir, '..', 'ml-model'),        # backend/ml/../ml-model
-                os.path.join(cwd, 'backend', 'ml-model'),        # cwd/backend/ml-model
-                'ml-model',                                      # Relative to cwd
-                os.path.join('backend', 'ml-model'),             # backend/ml-model
-            ]
-
-            model_path = None
-            vectorizer_path = None
-            found = False
-            print("[Model Loader] Attempting to load model and vectorizer. Current working directory:", cwd)
-            for path in possible_paths:
-                mp = os.path.abspath(os.path.join(path, 'model.pkl'))
-                vp = os.path.abspath(os.path.join(path, 'vectorizer.pkl'))
-                print(f"[Model Loader] Checking: {mp} and {vp}")
-                if os.path.exists(mp) and os.path.exists(vp):
-                    model_path = mp
-                    vectorizer_path = vp
-                    found = True
-                    print(f"[Model Loader] Found model at: {model_path}")
-                    print(f"[Model Loader] Found vectorizer at: {vectorizer_path}")
-                    break
-            if found and model_path and vectorizer_path:
+            # Try enhanced model first
+            model_path = os.path.join(
+                os.path.dirname(__file__), 
+                '..', '..', 'ml-model', 'model_enhanced.pkl'
+            )
+            vectorizer_path = os.path.join(
+                os.path.dirname(__file__), 
+                '..', '..', 'ml-model', 'vectorizer_enhanced.pkl'
+            )
+            
+            if os.path.exists(model_path) and os.path.exists(vectorizer_path):
                 self.model = joblib.load(model_path)
                 self.vectorizer = joblib.load(vectorizer_path)
                 self.model_loaded = True
-                print(f"[Model Loader] ML model loaded successfully from {os.path.dirname(model_path)}")
+                print("Enhanced ML model loaded successfully")
+                return
+            
+            # Fallback to original model
+            model_path = os.path.join(
+                os.path.dirname(__file__), 
+                '..', '..', 'ml-model', 'model.pkl'
+            )
+            vectorizer_path = os.path.join(
+                os.path.dirname(__file__), 
+                '..', '..', 'ml-model', 'vectorizer.pkl'
+            )
+            
+            if os.path.exists(model_path) and os.path.exists(vectorizer_path):
+                self.model = joblib.load(model_path)
+                self.vectorizer = joblib.load(vectorizer_path)
+                self.model_loaded = True
+                print("Original ML model loaded successfully")
             else:
-                print("[Model Loader] ERROR: Model files not found in any known location. Using rule-based detection only.")
+                print("Warning: Model files not found. Using rule-based detection only.")
                 self.model_loaded = False
         except Exception as e:
-            print(f"[Model Loader] Exception while loading model: {e}")
+            print(f"Error loading model: {e}")
             self.model_loaded = False
     
     def is_loaded(self) -> bool:
@@ -82,7 +72,7 @@ class FraudDetector:
     
     def _predict_with_ml(self, text: str) -> tuple:
         """
-        Predict using ML model
+        Predict using enhanced ML model
         
         Args:
             text: Input text
@@ -103,14 +93,16 @@ class FraudDetector:
             is_fraud = bool(prediction == 1)
             confidence = float(probabilities[1] if is_fraud else probabilities[0])
             
+            # Enhanced model is more reliable, use it directly
             return is_fraud, confidence
+                
         except Exception as e:
             print(f"ML prediction error: {e}")
             return self._rule_based_detection(text)
     
     def _rule_based_detection(self, text: str) -> tuple:
         """
-        Fallback rule-based detection
+        Improved rule-based detection with better accuracy
         
         Args:
             text: Input text
@@ -120,41 +112,68 @@ class FraudDetector:
         """
         text_lower = text.lower()
         
-        # Fraud indicators
-        fraud_keywords = [
-            'urgent', 'suspended', 'verify', 'click here', 'act now',
-            'limited time', 'expire', 'congratulations', 'won', 'prize',
-            'claim now', 'update immediately', 'payment failed',
-            'account compromised', 'deactivated', 'verify identity'
+        # High-risk fraud keywords (weight: 2)
+        high_risk_keywords = [
+            'urgent', 'suspended', 'click here', 'act now', 'verify immediately',
+            'account compromised', 'deactivated', 'claim now', 'won prize',
+            'payment failed', 'update immediately', 'expire soon'
         ]
         
-        suspicious_patterns = [
-            r'http[s]?://[^\s]+',  # URLs
-            r'www\.[^\s]+',  # www links
-            r'\d{4,}',  # Long numbers (OTP, codes)
-            r'[\+]?[(]?[0-9]{1,4}[)]?[-\s\.]?[(]?[0-9]{1,4}[)]?[-\s\.]?[0-9]{1,9}',  # Phone numbers
+        # Medium-risk keywords (weight: 1)
+        medium_risk_keywords = [
+            'verify', 'confirm', 'update', 'renew', 'expire', 'limited time',
+            'congratulations', 'winner', 'prize', 'free', 'offer'
+        ]
+        
+        # Safe keywords (negative weight)
+        safe_keywords = [
+            'thank you', 'receipt', 'confirmation', 'appointment', 'delivery',
+            'statement', 'balance', 'welcome', 'subscription', 'order'
         ]
         
         fraud_score = 0
-        max_score = 10
         
-        # Check keywords
-        for keyword in fraud_keywords:
+        # Check high-risk keywords
+        for keyword in high_risk_keywords:
+            if keyword in text_lower:
+                fraud_score += 2
+        
+        # Check medium-risk keywords
+        for keyword in medium_risk_keywords:
             if keyword in text_lower:
                 fraud_score += 1
         
-        # Check patterns
-        for pattern in suspicious_patterns:
-            if re.search(pattern, text, re.IGNORECASE):
-                fraud_score += 1
+        # Check safe keywords (reduce score)
+        for keyword in safe_keywords:
+            if keyword in text_lower:
+                fraud_score -= 1
         
-        # Check for currency mentions
-        if re.search(r'[\$₹€£]|\brupee\b|\bdollar\b', text_lower):
-            fraud_score += 0.5
+        # Suspicious URLs (high risk)
+        suspicious_url_patterns = [
+            r'http://[^\s]+',  # Non-HTTPS URLs
+            r'bit\.ly|tinyurl|short',  # URL shorteners
+            r'verify.*\.(com|net|org)',  # Verification domains
+            r'bank.*verify|secure.*login'  # Fake banking
+        ]
         
-        # Normalize score
-        confidence = min(fraud_score / max_score, 1.0)
-        is_fraud = confidence > 0.3
+        for pattern in suspicious_url_patterns:
+            if re.search(pattern, text_lower):
+                fraud_score += 2
+        
+        # Legitimate patterns (reduce score)
+        legitimate_patterns = [
+            r'https://[^\s]+\.(gov|edu|bank\.com)',  # Official domains
+            r'transaction.*id|receipt.*number',  # Transaction info
+            r'your.*order.*#\d+',  # Order confirmations
+        ]
+        
+        for pattern in legitimate_patterns:
+            if re.search(pattern, text_lower):
+                fraud_score -= 2
+        
+        # Normalize score (0-1 range)
+        confidence = max(0, min(fraud_score / 6.0, 1.0))
+        is_fraud = confidence > 0.5  # Higher threshold
         
         return is_fraud, confidence
     

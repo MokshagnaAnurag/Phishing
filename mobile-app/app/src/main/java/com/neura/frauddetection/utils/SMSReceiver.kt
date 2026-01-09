@@ -9,6 +9,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import com.neura.frauddetection.network.ApiService
+import com.neura.frauddetection.network.SMSRequest
 
 /**
  * SMS Receiver - Automatically scan incoming SMS
@@ -30,7 +31,7 @@ class SMSReceiver : BroadcastReceiver() {
                 // Scan SMS in background
                 CoroutineScope(Dispatchers.IO).launch {
                     try {
-                        val result = apiService.scanSMS(messageBody, senderPhone)
+                        val result = apiService.scanSMS(SMSRequest(messageBody, senderPhone))
                         
                         if (result.isFraud) {
                             // Show notification or alert

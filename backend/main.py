@@ -2,6 +2,13 @@
 NEURA - Fraud & Phishing Detection API Server
 FastAPI backend for mobile app
 """
+import sys
+import os
+
+# Add paths for Vercel deployment
+sys.path.append(os.path.dirname(__file__))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'ml-model'))
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -9,19 +16,11 @@ from typing import Optional
 import sys
 import os
 
-# Add ml-model to path (try multiple locations for Render compatibility)
-ml_model_paths = [
-    os.path.join(os.path.dirname(__file__), '..', 'ml-model'),
-    os.path.join(os.path.dirname(__file__), 'ml-model'),
-    os.path.join(os.getcwd(), 'ml-model'),
-    'ml-model'
-]
-for path in ml_model_paths:
-    abs_path = os.path.abspath(path)
-    if os.path.exists(abs_path) and abs_path not in sys.path:
-        sys.path.append(abs_path)
+# Add ml-model to path for Vercel
+sys.path.append(os.path.join(os.path.dirname(__file__), '..', 'ml-model'))
+sys.path.append(os.path.join(os.path.dirname(__file__), 'ml-model'))
 
-from ml.fraud_detector import FraudDetector
+from lightweight_detector import LightweightFraudDetector
 
 # Initialize FastAPI app
 app = FastAPI(
@@ -39,8 +38,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize fraud detector
-detector = FraudDetector()
+# Initialize lightweight detector for Vercel
+detector = LightweightFraudDetector()
 
 
 # Request/Response Models
@@ -168,7 +167,9 @@ async def scan_url(request: URLRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.getenv("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# For Vercel
+handler = app
 
 

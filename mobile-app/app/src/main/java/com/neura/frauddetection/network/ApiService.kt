@@ -35,23 +35,6 @@ interface ApiService {
         @Body request: URLRequest
     ): ScanResult
     
-    // Helper methods for easier calling
-    suspend fun scanSMS(text: String, phoneNumber: String?): ScanResult {
-        return scanSMS(SMSRequest(text, phoneNumber))
-    }
-    
-    suspend fun scanCall(phoneNumber: String): ScanResult {
-        return scanCall(CallRequest(phoneNumber, null))
-    }
-    
-    suspend fun scanEmail(subject: String, body: String, sender: String?): ScanResult {
-        return scanEmail(EmailRequest(subject, body, sender))
-    }
-    
-    suspend fun scanURL(url: String): ScanResult {
-        return scanURL(URLRequest(url))
-    }
-    
     companion object {
         // Change this to your backend URL
         private const val BASE_URL = "http://10.0.2.2:8000/"  // Android emulator localhost

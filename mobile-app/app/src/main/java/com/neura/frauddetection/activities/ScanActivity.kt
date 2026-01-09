@@ -9,6 +9,10 @@ import com.neura.frauddetection.R
 import com.neura.frauddetection.databinding.ActivityScanBinding
 import com.neura.frauddetection.models.ScanResult
 import com.neura.frauddetection.network.ApiService
+import com.neura.frauddetection.network.SMSRequest
+import com.neura.frauddetection.network.CallRequest
+import com.neura.frauddetection.network.EmailRequest
+import com.neura.frauddetection.network.URLRequest
 import com.neura.frauddetection.utils.FirebaseHelper
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,7 +48,6 @@ class ScanActivity : AppCompatActivity() {
         when (scanType) {
             "SMS" -> {
                 binding.layoutPhoneNumber.visibility = View.VISIBLE
-                binding.layoutText.hint = "Enter SMS text"
                 binding.layoutText.visibility = View.VISIBLE
                 binding.layoutSubject.visibility = View.GONE
                 binding.layoutBody.visibility = View.GONE
@@ -63,7 +66,6 @@ class ScanActivity : AppCompatActivity() {
             }
             "URL" -> {
                 binding.layoutPhoneNumber.visibility = View.GONE
-                binding.layoutText.hint = "Enter URL"
                 binding.layoutText.visibility = View.VISIBLE
                 binding.layoutSubject.visibility = View.GONE
                 binding.layoutBody.visibility = View.GONE
@@ -99,14 +101,14 @@ class ScanActivity : AppCompatActivity() {
                         if (text.isEmpty()) {
                             throw IllegalArgumentException("SMS text cannot be empty")
                         }
-                        apiService.scanSMS(text, phone)
+                        apiService.scanSMS(SMSRequest(text, phone.ifEmpty { null }))
                     }
                     "CALL" -> {
                         val phone = binding.inputPhoneNumber.text.toString()
                         if (phone.isEmpty()) {
                             throw IllegalArgumentException("Phone number cannot be empty")
                         }
-                        apiService.scanCall(phone)
+                        apiService.scanCall(CallRequest(phone, null))
                     }
                     "EMAIL" -> {
                         val subject = binding.inputSubject.text.toString()
@@ -114,14 +116,14 @@ class ScanActivity : AppCompatActivity() {
                         if (subject.isEmpty() || body.isEmpty()) {
                             throw IllegalArgumentException("Email subject and body cannot be empty")
                         }
-                        apiService.scanEmail(subject, body, null)
+                        apiService.scanEmail(EmailRequest(subject, body, null))
                     }
                     "URL" -> {
                         val url = binding.inputText.text.toString()
                         if (url.isEmpty()) {
                             throw IllegalArgumentException("URL cannot be empty")
                         }
-                        apiService.scanURL(url)
+                        apiService.scanURL(URLRequest(url))
                     }
                     else -> throw IllegalArgumentException("Unknown scan type")
                 }
